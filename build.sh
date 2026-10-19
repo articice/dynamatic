@@ -229,6 +229,7 @@ if [[ $SKIP_POLYGEIST -eq 0 ]]; then
   if should_run_cmake ; then
     cmake -G Ninja ../llvm \
         -DLLVM_ENABLE_PROJECTS="mlir;clang" \
+        -DLLVM_BUILD_EXAMPLES=ON \
         -DLLVM_TARGETS_TO_BUILD="host" \
         -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
         -DLLVM_PARALLEL_LINK_JOBS=$LLVM_PARALLEL_LINK_JOBS \

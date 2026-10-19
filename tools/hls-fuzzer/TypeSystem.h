@@ -1,6 +1,7 @@
 #ifndef DYNAMATIC_HLS_FUZZER_TYPE_SYSTEM_GUIDED_GENERATOR
 #define DYNAMATIC_HLS_FUZZER_TYPE_SYSTEM_GUIDED_GENERATOR
 
+#include <type_traits>
 #include "AST.h"
 #include "Randomly.h"
 #include "Utils.h"
@@ -49,20 +50,20 @@ public:
   /// 'TypingContext'.
   template <typename TypingContext>
   const TypingContext &cast() const & {
-    assert(data() != nullptr);
-    return *reinterpret_cast<const TypingContext *>(data());
+    // Noop casts to 'OpaqueContext' (an 'if constexpr' rather than an explicit
+    // specialization in class scope, which GCC rejects).
+    if constexpr (std::is_same_v<TypingContext, OpaqueContext>) {
+      return *this;
+    } else {
+      assert(data() != nullptr);
+      return *reinterpret_cast<const TypingContext *>(data());
+    }
   }
 
   template <typename TypingContext>
   TypingContext &&cast() && {
     assert(data() != nullptr);
     return std::move(*reinterpret_cast<TypingContext *>(data()));
-  }
-
-  // Enable noop casts to 'OpaqueContext'.
-  template <>
-  const OpaqueContext &cast<OpaqueContext>() const & {
-    return *this;
   }
 
   /// Returns an opaque internal pointer to the storage.

@@ -175,10 +175,11 @@ private:
             constructor) const {
       SubElementsTuple<ASTNode> subElements;
 
-      std::array<OpaqueContext,
-                 std::tuple_size_v<typename ASTNode::SubElements> + 1>
-          contexts;
-      std::get<sizeof...(SubElements)>(contexts) = std::move(parentContext);
+      constexpr std::size_t numContexts = sizeof...(SubElements) + 1;
+      std::array<OpaqueContext, numContexts> contexts;
+      // The last context is the parent's (contexts.back() rather than
+      // std::get<sizeof...(SubElements)>, which GCC rejects here).
+      contexts.back() = std::move(parentContext);
 
       // Calculate a topological order between all dependencies.
       // To do so we use a worklist of elements whose dependencies are all

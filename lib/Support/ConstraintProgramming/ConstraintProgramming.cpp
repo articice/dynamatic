@@ -486,8 +486,9 @@ CPVar GurobiSolver::addVar(const std::string &name, VarType type,
 
 CPVar GurobiSolver::addVar(const CPVar &var) {
   if (names.count(var.impl->name)) {
-    llvm::report_fatal_error("Adding variable with duplicated names is not "
-                             "permitted! Aborting...");
+    llvm::report_fatal_error("Adding variable with duplicated name '" +
+                             llvm::Twine(var.impl->name) +
+                             "' is not permitted! Aborting...");
   }
   double lb = var.impl->lowerBound.value_or(-GRB_INFINITY);
   double ub = var.impl->upperBound.value_or(GRB_INFINITY);
@@ -583,8 +584,9 @@ double GurobiSolver::getObjective() const {
 
 CPVar CbcSolver::addVar(const CPVar &var) {
   if (names.count(var.impl->name)) {
-    llvm::report_fatal_error("Adding variable with duplicated names is not "
-                             "permitted! Aborting...");
+    llvm::report_fatal_error("Adding variable with duplicated name '" +
+                             llvm::Twine(var.impl->name) +
+                             "' is not permitted! Aborting...");
   }
   names.insert(var.impl->name);
   variables.insert(var);

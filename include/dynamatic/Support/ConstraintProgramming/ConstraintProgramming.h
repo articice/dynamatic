@@ -11,6 +11,7 @@
 #include "mlir/Support/LogicalResult.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Twine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include <map>
 #include <memory>
@@ -55,8 +56,9 @@ struct CPVarImpl {
     if (name.empty() || !std::all_of(name.begin(), name.end(), [](char c) {
           return isalnum(c) || c == '_';
         }))
-      llvm::report_fatal_error("CPVar's name must be non empty and only "
-                               "contain alphanumeric or _ characters");
+      llvm::report_fatal_error("CPVar's name '" + llvm::Twine(name) +
+                               "' must be non empty and only contain "
+                               "alphanumeric or _ characters");
   }
 };
 } // namespace detail

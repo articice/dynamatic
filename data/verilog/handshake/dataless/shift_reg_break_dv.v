@@ -16,6 +16,7 @@ module shift_reg_break_dv_dataless #(
   // Internal signals
   reg  [NUM_SLOTS-1:0] valid_reg;
   wire             regEn;
+  integer i;
 
   // See 'docs/Specs/Buffering/Buffering.md'
   // All the slots share a single handshake control and thus 
@@ -25,8 +26,10 @@ module shift_reg_break_dv_dataless #(
       valid_reg <= {NUM_SLOTS{1'b0}};
     end else begin
       if (regEn) begin
-        valid_reg[NUM_SLOTS-1:1] <= valid_reg[NUM_SLOTS-2:0];
-        valid_reg[0]         <= ins_valid;
+        // a loop rather than a part-select, which is out of range for 1 slot
+        for (i = NUM_SLOTS - 1; i > 0; i = i - 1)
+          valid_reg[i] <= valid_reg[i - 1];
+        valid_reg[0] <= ins_valid;
       end
     end
   end

@@ -935,7 +935,13 @@ void BufferPlacementMILP::
     model->addQConstr(dataLatency * throughput <= chTokenOccupancy,
                       "throughput_tokens_lb");
     std::string channelName = getUniqueName(*channel.getUses().begin());
-    std::string shiftRegExtraBubblesName = "shiftReg_ub_" + channelName;
+    // One variable per channel and CFDFC: a channel can belong to several
+    // CFDFCs, so the name carries the CFDFC's prefix (from its throughput
+    // variable, "cfdfc<N>_throughput").
+    std::string cfdfcPrefix = cfVars.throughput.impl->name;
+    cfdfcPrefix = cfdfcPrefix.substr(0, cfdfcPrefix.find('_') + 1);
+    std::string shiftRegExtraBubblesName =
+        cfdfcPrefix + "shiftReg_ub_" + channelName;
     // Shift registers have more bubbles if II is higher than 1 (i.e.,
     // throughput < 1). In a shift register, every slot forwards data
     // simultaneously, but new tokens only arrive every II cycles. This means
@@ -1062,6 +1068,16 @@ void BufferPlacementMILP::addBlackboxConstraints(
   }
 }
 
+/// Subject graph node names come from the BLIF netlists and contain '.', '[',
+/// etc.; MILP variable names may only contain alphanumerics and '_'.
+static std::string milpName(const std::string &name) {
+  std::string out = name;
+  for (char &c : out)
+    if (!isalnum(static_cast<unsigned char>(c)))
+      c = '_';
+  return out;
+}
+
 void BufferPlacementMILP::addCutSelectionConstraints(
     std::vector<experimental::Cut> &cutVector) {
   LinExpr cutSelectionSum = 0;
@@ -1071,7 +1087,8 @@ void BufferPlacementMILP::addCutSelectionConstraints(
     // Add cut selection variable to the CPVar model
     CPVar &cutSelection = cut.getCutSelectionVariable();
     cutSelection = model->addVar(
-        (cut.getNode()->str() + "__CutSelection_" + std::to_string(i)), BOOLEAN,
+        milpName(cut.getNode()->str() + "__CutSelection_" + std::to_string(i)),
+        BOOLEAN,
         0, std::nullopt);
     cutSelectionSum += cutSelection;
   }
@@ -1126,7 +1143,7 @@ void BufferPlacementMILP::addNodeVars(experimental::LogicNetwork *blifData) {
     } else {
       // Create the timing variable for Subject Graph Node. These Nodes need
       // only 1 timing variable, as no buffers can be placed between them.
-      nodeVarIn = model->addVar(node->str(), REAL, 0, std::nullopt);
+      nodeVarIn = model->addVar(milpName(node->str()), REAL, 0, std::nullopt);
       nodeVarOut = nodeVarIn;
     }
   }
@@ -1436,8 +1453,9 @@ void BufferPlacementMILP::addBufferAreaAwareObjective(
     objective -= maxCoefCFDFC * shiftRegPenaltyMul * shiftReg;
 
     // Linearization of dataLatency * shiftReg
-    CPVar latencyMulShiftReg =
-        model->addVar("latencyMulShiftReg", INTEGER, 0, 100);
+    CPVar latencyMulShiftReg = model->addVar(
+        "latencyMulShiftReg_" + getUniqueName(*channel.getUses().begin()),
+        INTEGER, 0, 100);
     model->addConstr(latencyMulShiftReg <= dataLatency);
     model->addConstr(latencyMulShiftReg <= 100 * shiftReg);
     model->addConstr(latencyMulShiftReg >= dataLatency - (1 - shiftReg) * 100);
